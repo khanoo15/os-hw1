@@ -12,9 +12,7 @@ main(void)
   int p[2];
   int i, j, k;
 
-  // -------------------------------
-  // Step 1: Initialize matrices A and B
-  // -------------------------------
+  
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
       A[i][j] = i + j;        // Example values
@@ -23,17 +21,13 @@ main(void)
     }
   }
 
-  // -------------------------------
-  // Step 2: Create a pipe
-  // -------------------------------
+ 
   if (pipe(p) < 0) {
     printf("pipe failed\n");
     exit(1);
   }
 
-  // -------------------------------
-  // Step 3: Fork children (one per row)
-  // -------------------------------
+ 
   for (i = 0; i < N; i++) {
     int pid = fork();
     if (pid < 0) {
@@ -63,9 +57,7 @@ main(void)
     // Parent continues loop to create next child
   }
 
-  // -------------------------------
-  // Step 4: Parent collects results
-  // -------------------------------
+  
   close(p[1]); // parent won’t write
 
   for (i = 0; i < N; i++) {
@@ -77,14 +69,10 @@ main(void)
   }
   close(p[0]);
 
-  // -------------------------------
-  // Step 5: Wait for all children
-  // -------------------------------
+
   while (wait(0) > 0);
 
-  // -------------------------------
-  // Step 6: Print result matrix
-  // -------------------------------
+
   printf("Result Matrix C:\n");
   for (i = 0; i < N; i++) {
     for (j = 0; j < N; j++) {
