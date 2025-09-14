@@ -12,7 +12,10 @@
 #define BACK  5
 
 #define MAXARGS 10
-
+#define HISTORY_COUNT 10
+static char history[HISTORY_COUNT][100]; // store last 10 commands
+static int history_index = 0;
+static int history_size = 0;
 struct cmd {
   int type;
 };
@@ -131,14 +134,21 @@ runcmd(struct cmd *cmd)
   exit(0);
 }
 
-int
-getcmd(char *buf, int nbuf)
-{
+int getcmd(char *buf, int nbuf) {
   write(2, "$ ", 2);
   memset(buf, 0, nbuf);
   gets(buf, nbuf);
   if(buf[0] == 0) // EOF
     return -1;
+
+  // Save into history
+  if (buf[0] != '\n' && buf[0] != 0) {
+    strcpy(history[history_index], buf);
+    history_index = (history_index + 1) % HISTORY_COUNT;
+    if (history_size < HISTORY_COUNT)
+      history_size++;
+  }
+
   return 0;
 }
 
@@ -163,6 +173,36 @@ main(void)
       cmd++;
     if (*cmd == '\n') // is a blank command
       continue;
+
+    // ---- History built-ins: "history" and "!n" ----
+    // Note: history entries include the trailing '\n' from gets()
+    if (strcmp(cmd, "history\n") == 0) {
+      // print stored history, oldest first (0 .. history_size-1)
+      for (int i = 0; i < history_size; i++) {
+        int idx = (history_index - history_size + i + HISTORY_COUNT) % HISTORY_COUNT;
+        printf("%d: %s", i, history[idx]); // history[] lines already have newline
+      }
+      continue; // go back to prompt
+    }
+
+    if (cmd[0] == '!' && cmd[1] >= '0' && cmd[1] <= '9') {
+      int id = cmd[1] - '0';
+      if (id >= 0 && id < history_size) {
+        // recall command id (0-based as printed by history)
+        int idx = (history_index - history_size + id + HISTORY_COUNT) % HISTORY_COUNT;
+        char *recalled = history[idx];
+        // copy recalled command into buf so the parser runs it
+        strcpy(buf, recalled);
+        cmd = buf;
+        printf("Re-running: %s", cmd);
+        // fall through to execution (do not 'continue' here)
+      } else {
+        printf("No such history index\n");
+        continue;
+      }
+    }
+    // ---- end history built-ins ----
+
     if(cmd[0] == 'c' && cmd[1] == 'd' && cmd[2] == ' '){
       // Chdir must be called by the parent, not the child.
       cmd[strlen(cmd)-1] = 0;  // chop \n
@@ -174,9 +214,9 @@ main(void)
       wait(0);
     }
   }
+
   exit(0);
 }
-
 void
 panic(char *s)
 {
