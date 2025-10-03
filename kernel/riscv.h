@@ -283,7 +283,27 @@ r_time()
   asm volatile("csrr %0, time" : "=r" (x) );
   return x;
 }
+// Add these functions near the other CSR functions
 
+static inline uint64
+r_rdcycle()
+{
+  // Use time as fallback since we can't access cycle directly in supervisor mode
+  return r_time();
+}
+
+static inline uint64
+r_rdtime()
+{
+  return r_time();
+}
+
+static inline uint64
+r_rdinstret()
+{
+  // Use time as fallback for instret too
+  return r_time();
+}
 // enable device interrupts
 static inline void
 intr_on()

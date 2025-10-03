@@ -1,0 +1,138 @@
+[1mdiff --git a/Makefile b/Makefile[m
+[1mindex 74e454f..606f9f4 100644[m
+[1m--- a/Makefile[m
+[1m+++ b/Makefile[m
+[36m@@ -194,6 +194,7 @@[m [mUPROGS=\[m
+ 	$U/_grind\[m
+ 	$U/_wc\[m
+ 	$U/_zombie\[m
+[32m+[m	[32m$U/_test_metrics\[m
+ [m
+ [m
+ [m
+[36m@@ -302,7 +303,7 @@[m [mendif[m
+ FWDPORT1 = $(shell expr `id -u` % 5000 + 25999)[m
+ FWDPORT2 = $(shell expr `id -u` % 5000 + 30999)[m
+ [m
+[31m-QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic[m
+[32m+[m[32mQEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic -icount shift=0[m
+ QEMUOPTS += -global virtio-mmio.force-legacy=false[m
+ QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0[m
+ QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0[m
+[1mdiff --git a/kernel/riscv.h b/kernel/riscv.h[m
+[1mindex 6cfff1e..04ba9a2 100644[m
+[1m--- a/kernel/riscv.h[m
+[1m+++ b/kernel/riscv.h[m
+[36m@@ -283,7 +283,27 @@[m [mr_time()[m
+   asm volatile("csrr %0, time" : "=r" (x) );[m
+   return x;[m
+ }[m
+[32m+[m[32m// Add these functions near the other CSR functions[m
+ [m
+[32m+[m[32mstatic inline uint64[m
+[32m+[m[32mr_rdcycle()[m
+[32m+[m[32m{[m
+[32m+[m[32m  // Use time as fallback since we can't access cycle directly in supervisor mode[m
+[32m+[m[32m  return r_time();[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mstatic inline uint64[m
+[32m+[m[32mr_rdtime()[m
+[32m+[m[32m{[m
+[32m+[m[32m  return r_time();[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32mstatic inline uint64[m
+[32m+[m[32mr_rdinstret()[m
+[32m+[m[32m{[m
+[32m+[m[32m  // Use time as fallback for instret too[m
+[32m+[m[32m  return r_time();[m
+[32m+[m[32m}[m
+ // enable device interrupts[m
+ static inline void[m
+ intr_on()[m
+[1mdiff --git a/kernel/syscall.c b/kernel/syscall.c[m
+[1mindex 4aea542..dffeebd 100644[m
+[1m--- a/kernel/syscall.c[m
+[1m+++ b/kernel/syscall.c[m
+[36m@@ -101,6 +101,9 @@[m [mextern uint64 sys_unlink(void);[m
+ extern uint64 sys_link(void);[m
+ extern uint64 sys_mkdir(void);[m
+ extern uint64 sys_close(void);[m
+[32m+[m[32mextern uint64 sys_rdcycle(void);[m
+[32m+[m[32mextern uint64 sys_rdtime(void);[m
+[32m+[m[32mextern uint64 sys_rdinstret(void);[m
+ [m
+ #ifdef LAB_NET[m
+ extern uint64 sys_bind(void);[m
+[36m@@ -137,6 +140,9 @@[m [mstatic uint64 (*syscalls[])(void) = {[m
+ [SYS_link]    sys_link,[m
+ [SYS_mkdir]   sys_mkdir,[m
+ [SYS_close]   sys_close,[m
+[32m+[m[32m[SYS_rdcycle]   sys_rdcycle,[m
+[32m+[m[32m[SYS_rdtime]    sys_rdtime,[m
+[32m+[m[32m[SYS_rdinstret] sys_rdinstret,[m
+ #ifdef LAB_NET[m
+ [SYS_bind] sys_bind,[m
+ [SYS_unbind] sys_unbind,[m
+[1mdiff --git a/kernel/syscall.h b/kernel/syscall.h[m
+[1mindex a122272..899d033 100644[m
+[1m--- a/kernel/syscall.h[m
+[1m+++ b/kernel/syscall.h[m
+[36m@@ -35,3 +35,6 @@[m
+ #define SYS_recv      32[m
+ #define SYS_pgpte     33[m
+ #define SYS_kpgtbl    34[m
+[32m+[m[32m#define SYS_rdcycle   35[m
+[32m+[m[32m#define SYS_rdtime    36[m
+[32m+[m[32m#define SYS_rdinstret 37[m
+[1mdiff --git a/kernel/sysproc.c b/kernel/sysproc.c[m
+[1mindex d9b7f9c..b0b0798 100644[m
+[1m--- a/kernel/sysproc.c[m
+[1m+++ b/kernel/sysproc.c[m
+[36m@@ -123,3 +123,20 @@[m [msys_uptime(void)[m
+   release(&tickslock);[m
+   return xticks;[m
+ }[m
+[32m+[m[32muint64[m
+[32m+[m[32msys_rdcycle(void)[m
+[32m+[m[32m{[m
+[32m+[m[32m  return r_rdcycle();[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32muint64[m
+[32m+[m[32msys_rdtime(void)[m
+[32m+[m[32m{[m
+[32m+[m[32m  return r_rdtime();[m
+[32m+[m[32m}[m
+[32m+[m
+[32m+[m[32muint64[m
+[32m+[m[32msys_rdinstret(void)[m
+[32m+[m[32m{[m
+[32m+[m[32m  return r_rdinstret();[m
+[32m+[m[32m}[m
+[1mdiff --git a/user/user.h b/user/user.h[m
+[1mindex b91fd89..a4ced01 100644[m
+[1m--- a/user/user.h[m
+[1m+++ b/user/user.h[m
+[36m@@ -26,6 +26,9 @@[m [mint getpid(void);[m
+ char* sbrk(int);[m
+ int sleep(int);[m
+ int uptime(void);[m
+[32m+[m[32mint rdcycle(void);[m
+[32m+[m[32mint rdtime(void);[m
+[32m+[m[32mint rdinstret(void);[m
+ #ifdef LAB_NET[m
+ int bind(uint32);[m
+ int unbind(uint32);[m
+[1mdiff --git a/user/usys.pl b/user/usys.pl[m
+[1mindex 2c19fa6..24302b5 100755[m
+[1m--- a/user/usys.pl[m
+[1m+++ b/user/usys.pl[m
+[36m@@ -42,3 +42,6 @@[m [mentry("send");[m
+ entry("recv");[m
+ entry("pgpte");[m
+ entry("kpgtbl");[m
+[32m+[m[32mentry("rdcycle");[m
+[32m+[m[32mentry("rdtime");[m
+[32m+[m[32mentry("rdinstret");[m
