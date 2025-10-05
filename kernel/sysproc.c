@@ -9,21 +9,20 @@
 uint64
 sys_rdcycle(void)
 {
-  return r_time();  // Use the working time counter
+  return r_rdcycle();
 }
 
 uint64
 sys_rdtime(void)
 {
-  return r_time();  // Use the working time counter
+  return r_rdtime();
 }
 
 uint64
 sys_rdinstret(void)
 {
-  return r_time();  // Use the working time counter
+  return r_rdinstret();
 }
-
 uint64
 sys_memsize(void)
 {
