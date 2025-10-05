@@ -9,27 +9,19 @@
 uint64
 sys_rdcycle(void)
 {
-  unsigned long val;
-  asm volatile("rdcycle %0" : "=r"(val));
-  return val;
+  return r_time();  // Use the working time counter
 }
 
-// return time CSR (rdtime)
 uint64
 sys_rdtime(void)
 {
-  unsigned long val;
-  asm volatile("rdtime %0" : "=r"(val));
-  return val;
+  return r_time();  // Use the working time counter
 }
 
-// return instructions-retired CSR (rdinstret)
 uint64
 sys_rdinstret(void)
 {
-  unsigned long val;
-  asm volatile("rdinstret %0" : "=r"(val));
-  return val;
+  return r_time();  // Use the working time counter
 }
 
 uint64
