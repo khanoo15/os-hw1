@@ -7,12 +7,44 @@
 #include "proc.h"
 
 uint64
+sys_rdcycle(void)
+{
+  unsigned long val;
+  asm volatile("rdcycle %0" : "=r"(val));
+  return val;
+}
+
+// return time CSR (rdtime)
+uint64
+sys_rdtime(void)
+{
+  unsigned long val;
+  asm volatile("rdtime %0" : "=r"(val));
+  return val;
+}
+
+// return instructions-retired CSR (rdinstret)
+uint64
+sys_rdinstret(void)
+{
+  unsigned long val;
+  asm volatile("rdinstret %0" : "=r"(val));
+  return val;
+}
+
+uint64
+sys_memsize(void)
+{
+  return PHYSTOP;
+}
+
+uint64
 sys_exit(void)
 {
   int n;
   argint(0, &n);
   exit(n);
-  return 0;  // not reached
+  return 0; // not reached
 }
 
 uint64
@@ -43,7 +75,7 @@ sys_sbrk(void)
 
   argint(0, &n);
   addr = myproc()->sz;
-  if(growproc(n) < 0)
+  if (growproc(n) < 0)
     return -1;
   return addr;
 }
@@ -54,14 +86,15 @@ sys_sleep(void)
   int n;
   uint ticks0;
 
-
   argint(0, &n);
-  if(n < 0)
+  if (n < 0)
     n = 0;
   acquire(&tickslock);
   ticks0 = ticks;
-  while(ticks - ticks0 < n){
-    if(killed(myproc())){
+  while (ticks - ticks0 < n)
+  {
+    if (killed(myproc()))
+    {
       release(&tickslock);
       return -1;
     }
@@ -71,35 +104,32 @@ sys_sleep(void)
   return 0;
 }
 
-
 #ifdef LAB_PGTBL
-int
-sys_pgpte(void)
+int sys_pgpte(void)
 {
   uint64 va;
-  struct proc *p;  
+  struct proc *p;
 
   p = myproc();
   argaddr(0, &va);
   pte_t *pte = pgpte(p->pagetable, va);
-  if(pte != 0) {
-      return (uint64) *pte;
+  if (pte != 0)
+  {
+    return (uint64)*pte;
   }
   return 0;
 }
 #endif
 
-#ifdef LAB_PGTBL
-int
-sys_kpgtbl(void)
+
+int sys_kpgtbl(void)
 {
-  struct proc *p;  
+  struct proc *p;
 
   p = myproc();
   vmprint(p->pagetable);
   return 0;
 }
-#endif
 
 
 uint64
@@ -122,21 +152,4 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
-}
-uint64
-sys_rdcycle(void)
-{
-  return r_rdcycle();
-}
-
-uint64
-sys_rdtime(void)
-{
-  return r_rdtime();
-}
-
-uint64
-sys_rdinstret(void)
-{
-  return r_rdinstret();
 }

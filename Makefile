@@ -196,7 +196,7 @@ UPROGS=\
 	$U/_zombie\
 	$U/_test_metrics\
 	$U/_memtest\
-	
+	$U/_matrix_bench\
 
 
 
