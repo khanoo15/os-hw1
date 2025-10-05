@@ -283,7 +283,32 @@ r_time()
   asm volatile("csrr %0, time" : "=r" (x) );
   return x;
 }
+// Cycle CSR
+static inline uint64
+r_rdcycle()
+{
+  uint64 x;
+  asm volatile("csrr %0, cycle" : "=r" (x));
+  return x;
+}
 
+// Time CSR  
+static inline uint64
+r_rdtime()
+{
+  uint64 x;
+  asm volatile("csrr %0, time" : "=r" (x));
+  return x;
+}
+
+// Instruction Retired CSR
+static inline uint64
+r_rdinstret()
+{
+  uint64 x;
+  asm volatile("csrr %0, instret" : "=r" (x));
+  return x;
+}
 // enable device interrupts
 static inline void
 intr_on()
